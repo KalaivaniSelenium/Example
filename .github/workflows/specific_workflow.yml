@@ -1,0 +1,113 @@
+name: Specific Workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      AREA_CODE:
+        description: 'Set the area code'
+        required: false  # Set as false to make it optional
+        default: '470'   # Default value if not provided
+        type: string
+      BATCH_SIZE:
+        description: 'Choose the batch size'
+        required: true   
+        type: choice
+        options:
+          - '50'
+          - '100'
+          - '150'
+      Time_Zone:
+        description: 'Choose the time zone'
+        required: true   
+        type: choice
+        options:
+          - 'America/New_York'
+          - 'America/Chicago'
+          - 'America/Denver'
+          - 'America/Los_Angeles'
+          - 'America/Anchorage'
+          - 'Pacific/Honolulu'
+      List_of_testcases:
+        description: 'Choose the test'
+        required: true   
+        type: choice
+        options:
+         - '@AgentLogin'
+         - '@20k_exceldata'
+         - '@30k_XLXdata'
+         - '@50k_CSVdata'
+         - '@Withoutcallforwardingnumber'
+         - '@SameCallForwardingNumber'
+         - '@CreateMultipleMarkets'
+         - '@createcampaign'
+         - '@assigncampaign'
+         - '@createintialmessagetemplate'
+         - '@createandsendquickreply'
+         - '@createquickreplytemplate'
+         - '@createfollowupmessagetemplate'
+         - '@Createcampaignonofficetimeout'
+         - '@inboxpagevalidation'
+         - '@DeliverabilityAndResponseStatus'
+         - '@todaymessagesendcount'
+         - '@sendquickreply'
+         - '@cronJob01_03'
+         - '@CreateFollowUpCampaign'
+         - '@RunFollowUpCampaign'
+         - '@responsenoshufflevalidation'
+         - '@createdrip'
+         - '@assigndrip'
+         - '@leadrespondtodripmessage'
+         - '@expiretagvalidation'
+         - '@normalconversation'
+
+jobs:
+  build:
+    runs-on: zeitblast-selenium-self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Print AREA_CODE, BATCH_SIZE, and Time_Zone
+        env:
+          AREA_CODE: ${{ github.event.inputs.AREA_CODE }}
+          BATCH_SIZE: ${{ github.event.inputs.BATCH_SIZE }}
+          Time_Zone: ${{ github.event.inputs.Time_Zone }}
+        run: |
+          echo "The AREA_CODE value is: $AREA_CODE"
+          echo "The BATCH_SIZE value is: $BATCH_SIZE"
+          echo "The Time_Zone value is: $Time_Zone"
+
+      - name: Override AREA_CODE in properties file
+        if: ${{ github.event.inputs.AREA_CODE != null }}
+        run: |
+          sed -i "s/^AREA_CODE=.*$/AREA_CODE=${{ github.event.inputs.AREA_CODE }}/" src/test/resources/config/Zeitblast.properties
+
+      - name: Override BATCH_SIZE in properties file
+        if: ${{ github.event.inputs.BATCH_SIZE != null }}
+        run: |
+          sed -i "s/^BATCH_SIZE=.*$/BATCH_SIZE=${{ github.event.inputs.BATCH_SIZE }}/" src/test/resources/config/Zeitblast.properties
+
+      - name: Override Time_Zone in properties file
+        if: ${{ github.event.inputs.Time_Zone != null }}
+        run: |
+          sed -i "s|^Time_Zone=.*$|Time_Zone=${{ github.event.inputs.Time_Zone }}|" src/test/resources/config/Zeitblast.properties
+
+      - name: Run Selected Test Case
+        env:
+          TEST_CASE_TAG: ${{ github.event.inputs.List_of_testcases }}
+        run: mvn clean test -Dcucumber.filter.tags="$TEST_CASE_TAG"
+
+      - name: Upload Spark Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: SparkReport
+          path: ExtentReports/**/Reports/

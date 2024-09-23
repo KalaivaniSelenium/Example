@@ -1,0 +1,25 @@
+name: TC22_Run_FollowUp_Campaign
+
+on:
+  workflow_dispatch: # Allows manual triggering of the workflow
+
+jobs:
+  build:
+    runs-on: zeitblast-selenium-self-hosted
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+        cache: maven
+    - name: Run Follow Up Campaign
+      run: mvn clean test -Dcucumber.filter.tags="@RunFollowUpCampaign"
+    - name: Upload Spark Report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: SparkReport
+        path: ExtentReports/**/Reports/

@@ -1,0 +1,29 @@
+
+
+name: TC21_Create_FollowUp_Campaign
+
+on:
+  workflow_dispatch: # Allows manual triggering of the workflow
+
+jobs:
+  build:
+
+    runs-on: zeitblast-selenium-self-hosted
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: maven
+    - name: TC21_CreateFollowUpCampaign
+      run: mvn clean test -Dcucumber.filter.tags="@CreateFollowUpCampaign"
+    - name: Upload Spark Report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: SparkReport
+        path: ExtentReports/**/Reports/
+ 
